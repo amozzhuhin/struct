@@ -22,8 +22,10 @@ prepare:
 	mkdir -p $(OBJDIR)
 
 clean:
-	rm -rf $(OBJDIR) 
-	rm -f $(PROJECT)
+	rm $(BINDIR)/$(PROJECT)
+	rm -r $(BINDIR)
+	rm $(OBJS)
+	rm -r $(OBJDIR)
 
 all: prepare $(OBJS)
 	$(CC) $(OBJS) -o $(BINDIR)/$(PROJECT) $(LDFLAGS)
