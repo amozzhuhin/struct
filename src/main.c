@@ -177,7 +177,6 @@ static void test_struct_unpack_basic_min(void)
 
 static void test_struct_unpack_repeat(void)
 {
-	uint8_t buf[100];
 	ssize_t size;
 	int arr_value[3] = { -1, 100500, 42 };
 	int arr_result[3];

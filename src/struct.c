@@ -41,7 +41,7 @@ typedef struct _struct_context
 	int byte_order;
 	int native_alignment;
 	int native_size;
-	int repeat;
+	size_t repeat;
 } struct_context;
 
 /**
@@ -153,7 +153,7 @@ static ssize_t struct_calcsize_pad(struct_context *context)
 static ssize_t struct_pack_byte(void *buffer, struct_context *context, va_list *vl)
 {
 	uint8_t *p = buffer;
-	int i;
+	size_t i;
 
 	for (i = 0; i < context->repeat; i++)
 		*p++ = va_arg(*vl, int);
@@ -164,7 +164,7 @@ static ssize_t struct_pack_byte(void *buffer, struct_context *context, va_list *
 static ssize_t struct_unpack_byte(const void *buffer, struct_context *context, va_list *vl)
 {
 	const int8_t *p = buffer;
-	int i;
+	size_t i;
 
 	for (i = 0; i < context->repeat; i++)
 		*va_arg(*vl, int8_t*) = *p++;
@@ -180,7 +180,7 @@ static ssize_t struct_calcsize_byte(struct_context *context)
 static ssize_t struct_pack_bool(void *buffer, struct_context *context, va_list *vl)
 {
 	int8_t *p = buffer;
-	int i;
+	size_t i;
 
 	for (i = 0; i < context->repeat; i++)
 		*p++ = va_arg(*vl, int) != 0;
@@ -191,7 +191,7 @@ static ssize_t struct_pack_bool(void *buffer, struct_context *context, va_list *
 static ssize_t struct_unpack_bool(const void *buffer, struct_context *context, va_list *vl)
 {
 	const int8_t *p = buffer;
-	int i;
+	size_t i;
 
 	for (i = 0; i < context->repeat; i++)
 		*va_arg(*vl, int8_t*) = (*p++ != 0);
@@ -207,7 +207,7 @@ static ssize_t struct_calcsize_bool(struct_context *context)
 static ssize_t struct_pack_short(void *buffer, struct_context *context, va_list *vl)
 {
 	int16_t *p = buffer;
-	int i;
+	size_t i;
 
 	for (i = 0; i < context->repeat; i++)
 		*p++ = va_arg(*vl, int);
@@ -218,7 +218,7 @@ static ssize_t struct_pack_short(void *buffer, struct_context *context, va_list 
 static ssize_t struct_unpack_short(const void *buffer, struct_context *context, va_list *vl)
 {
 	const int16_t *p = buffer;
-	int i;
+	size_t i;
 
 	for (i = 0; i < context->repeat; i++)
 		*va_arg(*vl, int16_t*) = *p++;
@@ -234,7 +234,7 @@ static ssize_t struct_calcsize_short(struct_context *context)
 static ssize_t struct_pack_int(void *buffer, struct_context *context, va_list *vl)
 {
 	int32_t *p = buffer;
-	int i;
+	size_t i;
 
 	for (i = 0; i < context->repeat; i++)
 		*p++ = va_arg(*vl, int32_t);
@@ -245,7 +245,7 @@ static ssize_t struct_pack_int(void *buffer, struct_context *context, va_list *v
 static ssize_t struct_unpack_int(const void *buffer, struct_context *context, va_list *vl)
 {
 	const int32_t *p = buffer;
-	int i;
+	size_t i;
 
 	for (i = 0; i < context->repeat; i++)
 		*va_arg(*vl, int32_t*) = *p++;
@@ -261,7 +261,7 @@ static ssize_t struct_calcsize_int(struct_context *context)
 static ssize_t struct_pack_quad(void *buffer, struct_context *context, va_list *vl)
 {
 	int64_t *p = buffer;
-	int i;
+	size_t i;
 
 	for (i = 0; i < context->repeat; i++)
 		*p++ = va_arg(*vl, int64_t);
@@ -272,7 +272,7 @@ static ssize_t struct_pack_quad(void *buffer, struct_context *context, va_list *
 static ssize_t struct_unpack_quad(const void *buffer, struct_context *context, va_list *vl)
 {
 	const int64_t *p = buffer;
-	int i;
+	size_t i;
 
 	for (i = 0; i < context->repeat; i++)
 		*va_arg(*vl, int64_t*) = *p++;
@@ -288,7 +288,7 @@ static ssize_t struct_calcsize_quad(struct_context *context)
 static ssize_t struct_pack_float(void *buffer, struct_context *context, va_list *vl)
 {
 	float *p = buffer;
-	int i;
+	size_t i;
 
 	for (i = 0; i < context->repeat; i++)
 		*p++ = va_arg(*vl, double);
@@ -299,7 +299,7 @@ static ssize_t struct_pack_float(void *buffer, struct_context *context, va_list 
 static ssize_t struct_unpack_float(const void *buffer, struct_context *context, va_list *vl)
 {
 	const float *p = buffer;
-	int i;
+	size_t i;
 
 	for (i = 0; i < context->repeat; i++)
 		*va_arg(*vl, float*) = *p++;
@@ -315,7 +315,7 @@ static ssize_t struct_calcsize_float(struct_context *context)
 static ssize_t struct_pack_double(void *buffer, struct_context *context, va_list *vl)
 {
 	double *p = buffer;
-	int i;
+	size_t i;
 
 	for (i = 0; i < context->repeat; i++)
 		*p++ = va_arg(*vl, double);
@@ -326,7 +326,7 @@ static ssize_t struct_pack_double(void *buffer, struct_context *context, va_list
 static ssize_t struct_unpack_double(const void *buffer, struct_context *context, va_list *vl)
 {
 	const double *p = buffer;
-	int i;
+	size_t i;
 
 	for (i = 0; i < context->repeat; i++)
 		*va_arg(*vl, double*) = *p++;
@@ -343,7 +343,7 @@ static ssize_t struct_pack_str(void *buffer, struct_context *context, va_list *v
 {
 	char *p = buffer;
 	const char *str = va_arg(*vl, const char *);
-	int i;
+	size_t i;
 
 	for (i = 0; i < context->repeat; i++)
 	{

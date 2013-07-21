@@ -11,6 +11,9 @@ VPATH		= src
 C_FILES		= main struct
 OBJS		= $(addprefix $(OBJDIR)/, $(addsuffix .o, $(C_FILES)))
 
+CFLAGS		= -Wall -Wextra -Wno-unused-parameter -Wformat-y2k -Winit-self \
+			  -Wstrict-prototypes -Winline -Wnested-externs -Wbad-function-cast -Wshadow
+
 #
 # Targets
 #
