@@ -25,6 +25,7 @@
  */
 
 #include "struct.h"
+#include <ctype.h>
 #include <endian.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -56,16 +57,13 @@ typedef ssize_t (*struct_unpack_basic)(const void *buffer, size_t size,
 /** Definition of function for basic type size calculation */
 typedef ssize_t (*struct_calcsize_basic)(struct_context *context);
 
-typedef struct _struct_format_item
+typedef struct _struct_format_field
 {
 	char format;
 	struct_pack_basic pack;
 	struct_unpack_basic unpack;
 	struct_calcsize_basic calcsize;
-} struct_format_item;
-
-typedef ssize_t (*struct_parse_helper)(struct_context *context, const struct_format_item *item,
-		 void *helper_data);
+} struct_format_field;
 
 //
 // Forward Declarations
@@ -104,7 +102,7 @@ static ssize_t struct_calcsize_str(struct_context *context);
 //
 
 /** Format definition table */
-static const struct_format_item struct_format_table[] = {
+static const struct_format_field struct_format_fields[] = {
 		{ 'x', struct_pack_pad, NULL, struct_calcsize_pad },
 		{ 'c', struct_pack_byte, NULL, struct_calcsize_byte },
 		{ 'b', struct_pack_byte, NULL, struct_calcsize_byte },
@@ -275,17 +273,56 @@ static ssize_t struct_calcsize_str(struct_context *context)
 	return context->repeat * sizeof(char);
 }
 
+/**
+ * Parse next field format
+ * @param format Format string
+ * @param context Struct parsing context
+ * @param item Returning pointer to item or NULL on error
+ * @return Pointer to next character for parsing in format string
+ */
+const char* struct_parse_field(const char *format, struct_context *context, const struct_format_field **field)
+{
+	const char *c = format;
+
+	// whitespace characters between formats are ignored
+	while (isspace(*c)) c++;
+
+	// read integral repeat count
+	if (isdigit(*c))
+	{
+		context->repeat = 0;
+		do {
+			context->repeat = context->repeat * 10 + *c - '0';
+			c++;
+		} while (isdigit(*c));
+	}
+	else
+	{
+		context->repeat = 1;
+	}
+	// find packer for current basic type
+	*field = &struct_format_fields[0];
+	while ((*field)->format != '\0' && (*field)->format != *c)
+		(*field)++;
+	if ((*field)->format == *c)
+		c++;
+	else
+		*field = NULL;
+
+	return c;
+}
+
 //
 // Public Services
 //
 
 ssize_t struct_pack(void *buffer, size_t size, const char *format, ...)
 {
-	struct_context context;
 	const char *c;
+	struct_context context;
+	const struct_format_field *field;
 	uint8_t *p;
 	va_list vl;
-	int i;
 
 	if (buffer == NULL || format == NULL)
 		return -1;
@@ -300,47 +337,16 @@ ssize_t struct_pack(void *buffer, size_t size, const char *format, ...)
 
 	while ((*c != 0) && (p < (uint8_t *) buffer + size))
 	{
-		// whitespace characters between formats are ignored
-		if (*c == ' ' || *c == '\t')
-		{
-			c++;
-			continue;
-		}
-		// read integral repeat count
-		if (*c >= '0' && *c <= '9')
-		{
-			context.repeat = 0;
-			do {
-				context.repeat = context.repeat * 10 + *c - '0';
-				c++;
-			} while (*c >= '0' && *c <= '9');
-		}
+		c = struct_parse_field(c, &context, &field);
+		if (field != NULL && (uint8_t *) buffer + size - p >= field->calcsize(&context))
+			p += field->pack(p, &context, &vl);
 		else
-		{
-			context.repeat = 1;
-		}
-		// find packer for current basic type
-		i = 0;
-		while (struct_format_table[i].format != '\0'
-				&& struct_format_table[i].format != *c)
-			i++;
-		// process format character
-		if (struct_format_table[i].format != '\0'
-				|| (uint8_t *) buffer + size - p >= struct_format_table[i].calcsize(&context))
-		{
-			p += struct_format_table[i].pack(p, &context, &vl);
-		}
-		else
-		{
 			break;
-		}
-
-		c++;
 	}
 
 	va_end(vl);
 
-	// not processed all format string
+	// format string not processed
 	if (*c != 0)
 		return -1;
 
@@ -477,5 +483,33 @@ ssize_t struct_unpack(const void *buffer, size_t size, const char *format, ...)
 
 ssize_t struct_calcsize(const char *format)
 {
-	return -1;
+	const char *c;
+	struct_context context;
+	const struct_format_field *field;
+	ssize_t result;
+
+	if (format == NULL)
+		return -1;
+
+	context.byte_order = __BYTE_ORDER;
+	context.native_alignment = 1;
+	context.native_size = 1;
+
+	c = format;
+	result = 0;
+
+	while (*c != 0)
+	{
+		c = struct_parse_field(c, &context, &field);
+		if (field != NULL)
+			result += field->calcsize(&context);
+		else
+			break;
+	}
+
+	// format string not processed
+	if (*c != 0)
+		return -1;
+
+	return result;
 }
