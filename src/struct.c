@@ -403,7 +403,7 @@ const char* struct_parse_field(const char *format, struct_context *context, cons
 	*field = &struct_format_fields[0];
 	while ((*field)->format != '\0' && (*field)->format != *c)
 		(*field)++;
-	if ((*field)->format == *c)
+	if ((*field)->format != '\0')
 		c++;
 	else
 		*field = NULL;
@@ -417,9 +417,10 @@ const char* struct_parse_field(const char *format, struct_context *context, cons
 
 ssize_t struct_pack(void *buffer, size_t size, const char *format, ...)
 {
-	const char *c;
+	const char *c, *next;
 	struct_context context;
 	const struct_format_field *field;
+	ssize_t field_size;
 	uint8_t *p;
 	va_list vl;
 
@@ -434,18 +435,26 @@ ssize_t struct_pack(void *buffer, size_t size, const char *format, ...)
 	p = buffer;
 	va_start(vl, format);
 
-	while ((*c != '\0') && (p < (uint8_t *) buffer + size))
+	while (*c != '\0')
 	{
-		c = struct_parse_field(c, &context, &field);
-		if (field != NULL && (uint8_t *) buffer + size - p >= field->calcsize(&context))
-			p += field->pack(p, &context, &vl);
-		else
+		next = struct_parse_field(c, &context, &field);
+		if (field == NULL)
 			break;
+
+		field_size = field->calcsize(&context);
+		if ((uint8_t *) buffer + size - p < field_size)
+			break;
+
+		if (field->pack(p, &context, &vl) != field_size)
+			break;
+
+		p += field_size;
+		c = next;
 	}
 
 	va_end(vl);
 
-	// format string not processed
+	// not parse whole format string
 	if (*c != '\0')
 		return -1;
 
@@ -454,9 +463,10 @@ ssize_t struct_pack(void *buffer, size_t size, const char *format, ...)
 
 ssize_t struct_unpack(const void *buffer, size_t size, const char *format, ...)
 {
-	const char *c;
+	const char *c, *next;
 	struct_context context;
 	const struct_format_field *field;
+	ssize_t field_size;
 	const uint8_t *p;
 	va_list vl;
 
@@ -471,18 +481,26 @@ ssize_t struct_unpack(const void *buffer, size_t size, const char *format, ...)
 	p = buffer;
 	va_start(vl, format);
 
-	while ((*c != '\0') && (p < (uint8_t *) buffer + size))
+	while (*c != '\0')
 	{
-		c = struct_parse_field(c, &context, &field);
-		if (field != NULL && (const uint8_t *) buffer + size - p >= field->calcsize(&context))
-			p += field->unpack(p, &context, &vl);
-		else
+		next = struct_parse_field(c, &context, &field);
+		if (field == NULL)
 			break;
+
+		field_size = field->calcsize(&context);
+		if ((const uint8_t *) buffer + size - p < field_size)
+			break;
+
+		if (field->unpack(p, &context, &vl) != field_size)
+			break;
+
+		p += field_size;
+		c = next;
 	}
 
 	va_end(vl);
 
-	// not processed all format string
+	// not parse whole format string
 	if (*c != '\0')
 		return -1;
 
@@ -491,7 +509,7 @@ ssize_t struct_unpack(const void *buffer, size_t size, const char *format, ...)
 
 ssize_t struct_calcsize(const char *format)
 {
-	const char *c;
+	const char *c, *next;
 	struct_context context;
 	const struct_format_field *field;
 	ssize_t result;
@@ -508,14 +526,15 @@ ssize_t struct_calcsize(const char *format)
 
 	while (*c != '\0')
 	{
-		c = struct_parse_field(c, &context, &field);
-		if (field != NULL)
-			result += field->calcsize(&context);
-		else
+		next = struct_parse_field(c, &context, &field);
+		if (field == NULL)
 			break;
+
+		result += field->calcsize(&context);
+		c = next;
 	}
 
-	// format string not processed
+	// not parse whole format string
 	if (*c != '\0')
 		return -1;
 

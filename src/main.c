@@ -246,6 +246,57 @@ static void test_struct_example_1_3(void)
 		printf("FAIL\n");
 }
 
+static void test_struct_pack_errors(void)
+{
+	uint8_t buf[100];
+	ssize_t res1, res2, res3, res4, res5;
+
+	res1 = struct_pack(NULL, sizeof(buf), "i", 0);
+	res2 = struct_pack(buf, 0, "i", 0);
+	res3 = struct_pack(buf, sizeof(buf), NULL, 0);
+	res4 = struct_pack(buf, sizeof(buf), "abc", 0);
+	res5 = struct_pack(buf, sizeof(buf), "1", 0);
+
+	printf("Struct pack errors test: ");
+	if (res1 < 0 && res2 < 0 && res3 < 0 && res4 < 0 && res5 < 0)
+		printf("PASS\n");
+	else
+		printf("FAIL\n");
+}
+
+static void test_struct_unpack_errors(void)
+{
+	uint8_t buf[100];
+	ssize_t res1, res2, res3, res4, res5;
+
+	res1 = struct_unpack(NULL, sizeof(buf), "i", 0);
+	res2 = struct_unpack(buf, 0, "i", 0);
+	res3 = struct_unpack(buf, sizeof(buf), NULL, 0);
+	res4 = struct_unpack(buf, sizeof(buf), "abc", 0);
+	res5 = struct_unpack(buf, sizeof(buf), "1", 0);
+
+	printf("Struct unpack errors test: ");
+	if (res1 < 0 && res2 < 0 && res3 < 0 && res4 < 0 && res5 < 0)
+		printf("PASS\n");
+	else
+		printf("FAIL\n");
+}
+
+static void test_struct_calcsize_errors(void)
+{
+	ssize_t res1, res2, res3;
+
+	res1 = struct_calcsize(NULL);
+	res2 = struct_calcsize("abc");
+	res3 = struct_calcsize("1");
+
+	printf("Struct calcsize errors test: ");
+	if (res1 < 0 && res2 < 0 && res3 < 0)
+		printf("PASS\n");
+	else
+		printf("FAIL\n");
+}
+
 int main(int argc, char *argv[])
 {
 	test_struct_pack_basic_min();
@@ -258,6 +309,10 @@ int main(int argc, char *argv[])
 	test_struct_example_1_1();
 	test_struct_example_1_2();
 	test_struct_example_1_3();
+
+	test_struct_pack_errors();
+	test_struct_unpack_errors();
+	test_struct_calcsize_errors();
 
 	return 0;
 }
