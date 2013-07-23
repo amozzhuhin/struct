@@ -74,7 +74,7 @@ static void test_struct_pack_basic_min(void)
 			.s = CHAR_MIN
 	};
 
-	size = struct_pack(buf, sizeof(buf), "xcbB?hHiIlLqQfds",
+	size = struct_pack(buf, sizeof(buf), "=xcbB?hHiIlLqQfds",
 			min.c, min.b, min.B, min.qm, min.h, min.H, min.i, min.I,
 			min.l, min.L, min.q, min.Q, min.f, min.d, &min.s);
 
@@ -108,7 +108,7 @@ static void test_struct_pack_basic_max(void)
 			.s = CHAR_MAX
 	};
 
-	size = struct_pack(buf, sizeof(buf), "xcbB?hHiIlLqQfds",
+	size = struct_pack(buf, sizeof(buf), "=xcbB?hHiIlLqQfds",
 			max.c, max.b, max.B, max.qm, max.h, max.H, max.i, max.I,
 			max.l, max.L, max.q, max.Q, max.f, max.d, &max.s);
 
@@ -162,7 +162,7 @@ static void test_struct_unpack_basic_min(void)
 	};
 	struct TestStructBasic result;
 
-	size = struct_unpack(&value, sizeof(value), "xcbB?hHiIlLqQfds",
+	size = struct_unpack(&value, sizeof(value), "=xcbB?hHiIlLqQfds",
 			&result.c, &result.b, &result.B, &result.qm, &result.h, &result.H, &result.i, &result.I,
 			&result.l, &result.L, &result.q, &result.Q, &result.f, &result.d, &result.s, sizeof(result.s));
 	result.x = 0; result.s = CHAR_MIN; // fields not unpacked

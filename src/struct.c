@@ -32,6 +32,16 @@
 #include <string.h>
 
 //
+// Private Definitions
+//
+
+/**
+ * Calculate count of padding bytes needed to align field with given type
+ */
+#define struct_field_padding(context, type)	(context->native_alignment ? \
+		(__alignof__(type) - (uintptr_t) context->offset % __alignof__(type)) % __alignof__(type) : 0)
+
+//
 // Private Types
 //
 
@@ -41,6 +51,7 @@ typedef struct _struct_context
 	int byte_order;
 	int native_alignment;
 	int native_size;
+	size_t offset;
 	size_t repeat;
 } struct_context;
 
@@ -206,137 +217,168 @@ static ssize_t struct_calcsize_bool(struct_context *context)
 
 static ssize_t struct_pack_short(void *buffer, struct_context *context, va_list *vl)
 {
-	int16_t *p = buffer;
+	int16_t *p;
 	size_t i;
+	size_t padding = struct_field_padding(context, int16_t);
+
+	memset(buffer, 0, padding);
+	p = buffer + padding;
 
 	for (i = 0; i < context->repeat; i++)
 		*p++ = va_arg(*vl, int);
 
-	return context->repeat * sizeof(int16_t);
+	return (void *) p - buffer;
 }
 
 static ssize_t struct_unpack_short(const void *buffer, struct_context *context, va_list *vl)
 {
-	const int16_t *p = buffer;
+	const int16_t *p;
 	size_t i;
+
+	p = buffer + struct_field_padding(context, int16_t);
 
 	for (i = 0; i < context->repeat; i++)
 		*va_arg(*vl, int16_t*) = *p++;
 
-	return context->repeat * sizeof(int16_t);
+	return (void *) p - buffer;
 }
 
 static ssize_t struct_calcsize_short(struct_context *context)
 {
-	return context->repeat * sizeof(int16_t);
+	return struct_field_padding(context, int16_t) + context->repeat * sizeof(int16_t);
 }
 
 static ssize_t struct_pack_int(void *buffer, struct_context *context, va_list *vl)
 {
-	int32_t *p = buffer;
+	int32_t *p;
 	size_t i;
+	size_t padding = struct_field_padding(context, int32_t);
+
+	memset(buffer, 0, padding);
+	p = buffer + padding;
 
 	for (i = 0; i < context->repeat; i++)
 		*p++ = va_arg(*vl, int32_t);
 
-	return context->repeat * sizeof(int32_t);
+	return (void *) p - buffer;
 }
 
 static ssize_t struct_unpack_int(const void *buffer, struct_context *context, va_list *vl)
 {
-	const int32_t *p = buffer;
+	const int32_t *p;
 	size_t i;
+
+	p = buffer + struct_field_padding(context, int32_t);
 
 	for (i = 0; i < context->repeat; i++)
 		*va_arg(*vl, int32_t*) = *p++;
 
-	return context->repeat * sizeof(int32_t);
+	return (void *) p - buffer;
 }
 
 static ssize_t struct_calcsize_int(struct_context *context)
 {
-	return context->repeat * sizeof(int32_t);
+	return struct_field_padding(context, int32_t) + context->repeat * sizeof(int32_t);
 }
 
 static ssize_t struct_pack_quad(void *buffer, struct_context *context, va_list *vl)
 {
-	int64_t *p = buffer;
+	int64_t *p;
 	size_t i;
+	size_t padding = struct_field_padding(context, int64_t);
+
+	memset(buffer, 0, padding);
+	p = buffer + padding;
 
 	for (i = 0; i < context->repeat; i++)
 		*p++ = va_arg(*vl, int64_t);
 
-	return context->repeat * sizeof(int64_t);
+	return (void *) p - buffer;
 }
 
 static ssize_t struct_unpack_quad(const void *buffer, struct_context *context, va_list *vl)
 {
-	const int64_t *p = buffer;
+	const int64_t *p;
 	size_t i;
+
+	p = buffer + struct_field_padding(context, int64_t);
 
 	for (i = 0; i < context->repeat; i++)
 		*va_arg(*vl, int64_t*) = *p++;
 
-	return context->repeat * sizeof(int64_t);
+	return (void *) p - buffer;
 }
 
 static ssize_t struct_calcsize_quad(struct_context *context)
 {
-	return context->repeat * sizeof(int64_t);
+	return struct_field_padding(context, int64_t) + context->repeat * sizeof(int64_t);
 }
 
 static ssize_t struct_pack_float(void *buffer, struct_context *context, va_list *vl)
 {
-	float *p = buffer;
+	float *p;
 	size_t i;
+	size_t padding = struct_field_padding(context, float);
+
+	memset(buffer, 0, padding);
+	p = buffer + padding;
 
 	for (i = 0; i < context->repeat; i++)
 		*p++ = va_arg(*vl, double);
 
-	return context->repeat * sizeof(float);
+	return (void *) p - buffer;
 }
 
 static ssize_t struct_unpack_float(const void *buffer, struct_context *context, va_list *vl)
 {
-	const float *p = buffer;
+	const float *p;
 	size_t i;
+
+	p = buffer + struct_field_padding(context, float);
 
 	for (i = 0; i < context->repeat; i++)
 		*va_arg(*vl, float*) = *p++;
 
-	return context->repeat * sizeof(float);
+	return (void *) p - buffer;
 }
 
 static ssize_t struct_calcsize_float(struct_context *context)
 {
-	return context->repeat * sizeof(float);
+	return struct_field_padding(context, float) + context->repeat * sizeof(float);
 }
 
 static ssize_t struct_pack_double(void *buffer, struct_context *context, va_list *vl)
 {
 	double *p = buffer;
 	size_t i;
+	size_t padding = struct_field_padding(context, double);
+
+	memset(buffer, 0, padding);
+	p = buffer + padding;
 
 	for (i = 0; i < context->repeat; i++)
 		*p++ = va_arg(*vl, double);
 
-	return context->repeat * sizeof(double);
+	return (void *) p - buffer;
 }
 
 static ssize_t struct_unpack_double(const void *buffer, struct_context *context, va_list *vl)
 {
-	const double *p = buffer;
+	const double *p;
 	size_t i;
+	size_t padding = struct_field_padding(context, double);
+
+	p = buffer + padding;
 
 	for (i = 0; i < context->repeat; i++)
 		*va_arg(*vl, double*) = *p++;
 
-	return context->repeat * sizeof(double);
+	return (void *) p - buffer;
 }
 
 static ssize_t struct_calcsize_double(struct_context *context)
 {
-	return context->repeat * sizeof(double);
+	return struct_field_padding(context, double) + context->repeat * sizeof(double);
 }
 
 static ssize_t struct_pack_str(void *buffer, struct_context *context, va_list *vl)
@@ -353,7 +395,7 @@ static ssize_t struct_pack_str(void *buffer, struct_context *context, va_list *v
 			*p++ = 0;
 	}
 
-	return context->repeat * sizeof(char);
+	return (void *) p - buffer;
 }
 
 static ssize_t struct_unpack_str(const void *buffer, struct_context *context, va_list *vl)
@@ -468,6 +510,7 @@ ssize_t struct_pack(void *buffer, size_t size, const char *format, ...)
 	if (buffer == NULL || format == NULL)
 		return -1;
 
+	memset(&context, 0, sizeof(context));
 	c = struct_parse_prefix(format, &context);
 	p = buffer;
 	va_start(vl, format);
@@ -486,6 +529,7 @@ ssize_t struct_pack(void *buffer, size_t size, const char *format, ...)
 			break;
 
 		p += field_size;
+		context.offset += field_size;
 		c = next;
 	}
 
@@ -510,6 +554,7 @@ ssize_t struct_unpack(const void *buffer, size_t size, const char *format, ...)
 	if (buffer == NULL || format == NULL)
 		return -1;
 
+	memset(&context, 0, sizeof(context));
 	c = struct_parse_prefix(format, &context);
 	p = buffer;
 	va_start(vl, format);
@@ -528,6 +573,7 @@ ssize_t struct_unpack(const void *buffer, size_t size, const char *format, ...)
 			break;
 
 		p += field_size;
+		context.offset += field_size;
 		c = next;
 	}
 
@@ -545,11 +591,13 @@ ssize_t struct_calcsize(const char *format)
 	const char *c, *next;
 	struct_context context;
 	const struct_format_field *field;
+	ssize_t field_size;
 	ssize_t result;
 
 	if (format == NULL)
 		return -1;
 
+	memset(&context, 0, sizeof(context));
 	c = struct_parse_prefix(format, &context);
 	result = 0;
 
@@ -559,7 +607,12 @@ ssize_t struct_calcsize(const char *format)
 		if (field == NULL)
 			break;
 
-		result += field->calcsize(&context);
+		field_size = field->calcsize(&context);
+		if (field_size <= 0)
+			break;
+
+		result += field_size;
+		context.offset += field_size;
 		c = next;
 	}
 
