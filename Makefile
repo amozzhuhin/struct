@@ -1,4 +1,4 @@
-PROJECT		= struct
+PROJECT		= struct-tests
 
 #
 # Flags
@@ -8,7 +8,7 @@ BINDIR 		= bin
 OBJDIR 		= obj
 VPATH		= src
 
-C_FILES		= main struct
+C_FILES		= tests struct
 OBJS		= $(addprefix $(OBJDIR)/, $(addsuffix .o, $(C_FILES)))
 
 CFLAGS		= -Wall -Wextra -Wno-unused-parameter -Wformat-y2k -Winit-self \

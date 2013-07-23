@@ -1,5 +1,5 @@
 /**
- * main.c
+ * tests.c
  * Tests for 'struct' module
  *
  * The MIT License (MIT)
