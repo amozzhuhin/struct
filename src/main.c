@@ -246,6 +246,32 @@ static void test_struct_example_1_3(void)
 		printf("FAIL\n");
 }
 
+static void test_struct_example_2(void)
+{
+	char record[] = "raymond   \x32\x12\x08\x01\x08";
+	struct {
+		char name[11];
+		unsigned short serialnum;
+		unsigned short school;
+		signed char gradelevel;
+	} student;
+	ssize_t size;
+
+	size = struct_unpack(record, sizeof(record), "<10sHHb",
+			&student.name[0], sizeof(student.name),
+			&student.serialnum, &student.school, &student.gradelevel);
+
+	printf("Example 2 test: ");
+	if (size == sizeof(record) - 1 &&
+			strncmp("raymond   ", student.name, sizeof(student.name)) &&
+			student.serialnum == 4658 &&
+			student.school == 264 &&
+			student.gradelevel == 8)
+		printf("PASS\n");
+	else
+		printf("FAIL\n");
+}
+
 static void test_struct_pack_errors(void)
 {
 	uint8_t buf[100];
@@ -309,6 +335,7 @@ int main(int argc, char *argv[])
 	test_struct_example_1_1();
 	test_struct_example_1_2();
 	test_struct_example_1_3();
+	test_struct_example_2();
 
 	test_struct_pack_errors();
 	test_struct_unpack_errors();
