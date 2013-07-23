@@ -326,6 +326,26 @@ static void test_struct_example_3_3(void)
 		printf("FAIL\n");
 }
 
+static void test_struct_example_4(void)
+{
+	uint8_t buf[100];
+	ssize_t size;
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+	uint8_t result[] = { 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00 };
+#else
+	uint8_t result[] = { 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x03, 0x00, 0x00 };
+#endif
+
+	size = struct_pack(buf, sizeof(buf), "llh0l", 1, 2, 3);
+
+	printf("Example 4 test: ");
+	if (size == sizeof(result) &&
+			memcmp(buf, result, sizeof(result)) == 0)
+		printf("PASS\n");
+	else
+		printf("FAIL\n");
+}
+
 static void test_struct_pack_errors(void)
 {
 	uint8_t buf[100];
@@ -393,6 +413,7 @@ int main(int argc, char *argv[])
 	test_struct_example_3_1();
 	test_struct_example_3_2();
 	test_struct_example_3_3();
+	test_struct_example_4();
 
 	test_struct_pack_errors();
 	test_struct_unpack_errors();
