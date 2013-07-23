@@ -411,6 +411,47 @@ const char* struct_parse_field(const char *format, struct_context *context, cons
 	return c;
 }
 
+const char* struct_parse_prefix(const char *format, struct_context *context)
+{
+	const char *c = format;
+
+	switch (*c)
+	{
+	case '=':
+		c++;
+		context->byte_order = __BYTE_ORDER;
+		context->native_size = 0;
+		context->native_alignment = 0;
+		break;
+
+	case '<':
+		c++;
+		context->byte_order = __LITTLE_ENDIAN;
+		context->native_size = 0;
+		context->native_alignment = 0;
+		break;
+
+	case '>':
+	case '!':
+		c++;
+		context->byte_order = __BIG_ENDIAN;
+		context->native_size = 0;
+		context->native_alignment = 0;
+		break;
+
+	case '@':
+		c++;
+		/* fall through */
+	default:
+		context->byte_order = __BYTE_ORDER;
+		context->native_size = 1;
+		context->native_alignment = 1;
+		break;
+	}
+
+	return c;
+}
+
 //
 // Public Services
 //
@@ -427,11 +468,7 @@ ssize_t struct_pack(void *buffer, size_t size, const char *format, ...)
 	if (buffer == NULL || format == NULL)
 		return -1;
 
-	context.byte_order = __BYTE_ORDER;
-	context.native_alignment = 1;
-	context.native_size = 1;
-
-	c = format;
+	c = struct_parse_prefix(format, &context);
 	p = buffer;
 	va_start(vl, format);
 
@@ -473,11 +510,7 @@ ssize_t struct_unpack(const void *buffer, size_t size, const char *format, ...)
 	if (buffer == NULL || format == NULL)
 		return -1;
 
-	context.byte_order = __BYTE_ORDER;
-	context.native_alignment = 1;
-	context.native_size = 1;
-
-	c = format;
+	c = struct_parse_prefix(format, &context);
 	p = buffer;
 	va_start(vl, format);
 
@@ -517,11 +550,7 @@ ssize_t struct_calcsize(const char *format)
 	if (format == NULL)
 		return -1;
 
-	context.byte_order = __BYTE_ORDER;
-	context.native_alignment = 1;
-	context.native_size = 1;
-
-	c = format;
+	c = struct_parse_prefix(format, &context);
 	result = 0;
 
 	while (*c != '\0')

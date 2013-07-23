@@ -263,7 +263,7 @@ static void test_struct_example_2(void)
 
 	printf("Example 2 test: ");
 	if (size == sizeof(record) - 1 &&
-			strncmp("raymond   ", student.name, sizeof(student.name)) &&
+			strncmp("raymond   ", student.name, sizeof(student.name)) == 0 &&
 			student.serialnum == 4658 &&
 			student.school == 264 &&
 			student.gradelevel == 8)
