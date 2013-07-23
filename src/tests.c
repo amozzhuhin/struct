@@ -397,6 +397,57 @@ static void test_struct_calcsize_errors(void)
 		printf("FAIL\n");
 }
 
+static void test_struct_pack_endian(void)
+{
+	uint8_t buf[100];
+	ssize_t size;
+	uint8_t result_le[] = { 0x00, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00,
+							0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	uint8_t result_be[] = { 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02,
+							0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03 };
+	ssize_t res1, res2;
+
+	size = struct_pack(buf, sizeof(buf), "<bhiq", 0, 1, 2, 3LL);
+	res1 = (size == sizeof(result_le) && memcmp(buf, result_le, sizeof(result_le)) == 0);
+
+	size = struct_pack(buf, sizeof(buf), ">bhiq", 0, 1, 2, 3LL);
+	res2 = (size == sizeof(result_be) && memcmp(buf, result_be, sizeof(result_be)) == 0);
+
+	printf("Pack endian test: ");
+	if (res1 && res2)
+		printf("PASS\n");
+	else
+		printf("FAIL\n");
+}
+
+static void test_struct_unpack_endian(void)
+{
+	uint8_t buf_le[] = { 0x00, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00,
+						 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	uint8_t buf_be[] = { 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02,
+						 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03 };
+	ssize_t size;
+	int8_t b;
+	int16_t h;
+	int32_t i;
+	int64_t q;
+	ssize_t res1, res2;
+
+	q = i = h = b = 0;
+	size = struct_unpack(buf_le, sizeof(buf_le), "<bhiq", &b, &h, &i, &q);
+	res1 = (size == sizeof(buf_le) && b == 0 && h == 1 && i == 2 && q == 3);
+
+	q = i = h = b = 0;
+	size = struct_pack(buf_be, sizeof(buf_be), ">bhiq", &b, &h, &i, &q);
+	res2 = (size == sizeof(buf_be) && b == 0 && h == 1 && i == 2 && q == 3);
+
+	printf("Unpack endian test: ");
+	if (res1 && res2)
+		printf("PASS\n");
+	else
+		printf("FAIL\n");
+}
+
 int main(int argc, char *argv[])
 {
 	test_struct_pack_basic_min();
@@ -418,6 +469,9 @@ int main(int argc, char *argv[])
 	test_struct_pack_errors();
 	test_struct_unpack_errors();
 	test_struct_calcsize_errors();
+
+	test_struct_pack_endian();
+	test_struct_unpack_endian();
 
 	return 0;
 }
