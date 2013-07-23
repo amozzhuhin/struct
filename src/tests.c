@@ -272,6 +272,60 @@ static void test_struct_example_2(void)
 		printf("FAIL\n");
 }
 
+static void test_struct_example_3_1(void)
+{
+	uint8_t buf[100];
+	ssize_t size;
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+	uint8_t result[] = { '*', 0x00, 0x00, 0x00, 0x15, 0x14, 0x13, 0x12 };
+#else
+	uint8_t result[] = { '*', 0x00, 0x00, 0x00, 0x12, 0x13, 0x14, 0x15 };
+#endif
+
+	size = struct_pack(buf, sizeof(buf), "ci", '*', 0x12131415);
+
+	printf("Example 3.1 test: ");
+	if (size == sizeof(result) &&
+			memcmp(buf, result, sizeof(result)) == 0)
+		printf("PASS\n");
+	else
+		printf("FAIL\n");
+}
+
+static void test_struct_example_3_2(void)
+{
+	uint8_t buf[100];
+	ssize_t size;
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+	uint8_t result[] = { 0x15, 0x14, 0x13, 0x12, '*' };
+#else
+	uint8_t result[] = { 0x12, 0x13, 0x14, 0x15, '*' };
+#endif
+
+	size = struct_pack(buf, sizeof(buf), "ic", 0x12131415, '*');
+
+	printf("Example 3.2 test: ");
+	if (size == sizeof(result) &&
+			memcmp(buf, result, sizeof(result)) == 0)
+		printf("PASS\n");
+	else
+		printf("FAIL\n");
+}
+
+static void test_struct_example_3_3(void)
+{
+	ssize_t res1, res2;
+
+	res1 = struct_calcsize("ci");
+	res2 = struct_calcsize("ic");
+
+	printf("Example 3.3 test: ");
+	if (res1 == 8 && res2 == 5)
+		printf("PASS\n");
+	else
+		printf("FAIL\n");
+}
+
 static void test_struct_pack_errors(void)
 {
 	uint8_t buf[100];
@@ -336,6 +390,9 @@ int main(int argc, char *argv[])
 	test_struct_example_1_2();
 	test_struct_example_1_3();
 	test_struct_example_2();
+	test_struct_example_3_1();
+	test_struct_example_3_2();
+	test_struct_example_3_3();
 
 	test_struct_pack_errors();
 	test_struct_unpack_errors();
