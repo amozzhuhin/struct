@@ -75,6 +75,24 @@ typedef struct _struct_format_field
 	struct_calcsize_basic calcsize;
 } struct_format_field;
 
+/**
+ * Float to 32-bit integer value conversation
+ */
+typedef union _float32
+{
+	float		f;
+	uint32_t	i;
+} float32;
+
+/**
+ * Double to 64-bit integer value conversation
+ */
+typedef union _double64
+{
+	double		d;
+	uint64_t	i;
+} double64;
+
 //
 // Forward Declarations
 //
@@ -144,6 +162,155 @@ static const struct_format_field struct_format_fields[] = {
 //
 // Private Services
 //
+
+/**
+ * Load 16-bit value in system order from pointer
+ * @param p Data source
+ * @return 16-bit value from pointer
+ */
+static inline uint16_t load_16(const void *p)
+{
+#if BYTE_ORDER == LITTLE_ENDIAN
+	return (*(uint8_t *) p) + (*(uint8_t *) (p + 1) << 8);
+#else
+	return (*(uint8_t *) (p + 1)) + (*(uint8_t *) p << 8);
+#endif
+}
+
+/**
+ * Store 16-bit value to pointer in system order
+ * @param p Data destination
+ * @param v 16-bit value to store
+ */
+static inline void stor_16(void *p, uint16_t v)
+{
+#if BYTE_ORDER == LITTLE_ENDIAN
+	*(uint8_t *) p = v & 0xff;
+	*(uint8_t *) (p + 1) = v >> 8;
+#else
+	*(uint8_t *) p = v >> 8;
+	*(uint8_t *) (p + 1) = v & 0xff;
+#endif
+}
+
+/**
+ * Swap bytes in 16-bit value
+ * @param v Original 16-bit value
+ * @return Swapped 16-bit value
+ */
+static inline uint16_t swab_16(uint16_t v)
+{
+	return (v >> 8) | ((v & 0xff) << 8);
+}
+
+/**
+ * Load 32-bit value in system order from pointer
+ * @param p Data source
+ * @return 32-bit value from pointer
+ */
+static inline uint32_t load_32(const void *p)
+{
+	const uint8_t *p8 = p;
+#if BYTE_ORDER == LITTLE_ENDIAN
+	return p8[0] + (p8[1] << 8) + (p8[2] << 16) + (p8[3] << 24);
+#else
+	return p8[3] + (p8[2] << 8) + (p8[1] << 16) + (p8[0] << 24);
+#endif
+}
+
+/**
+ * Store 32-bit value to pointer in system order
+ * @param p Data destination
+ * @param v 32-bit value to store
+ */
+static inline void stor_32(void *p, uint32_t v)
+{
+	uint8_t *p8 = p;
+#if BYTE_ORDER == LITTLE_ENDIAN
+	p8[0] = v & 0xff;
+	p8[1] = (v >> 8) & 0xff;
+	p8[2] = (v >> 16) & 0xff;
+	p8[3] = v >> 24;
+#else
+	p8[3] = v & 0xff;
+	p8[2] = (v >> 8) & 0xff;
+	p8[1] = (v >> 16) & 0xff;
+	p8[0] = v >> 24;
+#endif
+}
+
+/**
+ * Swap bytes in 32-bit value
+ * @param v Original 32-bit value
+ * @return Swapped 32-bit value
+ */
+static inline uint32_t swab_32(uint32_t v)
+{
+	return (v >> 24) | ((v & 0x00ff0000) >> 8) | ((v & 0x0000ff00) << 8) | ((v & 0xff) << 24);
+}
+
+/**
+ * Load 64-bit value in system order from pointer
+ * @param p Data source
+ * @return 64-bit value from pointer
+ */
+static inline uint64_t load_64(const void *p)
+{
+	const uint8_t *p8 = p;
+	uint64_t result = 0;
+	size_t i;
+
+	for (i = 0; i < sizeof(uint64_t); i++)
+	{
+		result <<= 8;
+#if BYTE_ORDER == LITTLE_ENDIAN
+		result |= p8[sizeof(uint64_t) - i - 1];
+#else
+		result |= p8[i];
+#endif
+	}
+	return result;
+}
+
+/**
+ * Store 64-bit value to pointer in system order
+ * @param p Data destination
+ * @param v 64-bit value to store
+ */
+static inline void stor_64(void *p, uint64_t v)
+{
+	uint8_t *p8 = p;
+	size_t i;
+
+	for (i = 0; i < sizeof(v); i++)
+	{
+#if BYTE_ORDER == LITTLE_ENDIAN
+		p8[i] = v & 0xff;
+#else
+		p8[sizeof(v) - i - 1] = v & 0xff;
+#endif
+		v >>= 8;
+	}
+}
+
+/**
+ * Swap bytes in 64-bit value
+ * @param v Original 64-bit value
+ * @return Swapped 64-bit value
+ */
+static inline uint64_t swab_64(uint64_t v)
+{
+	uint64_t result = 0;
+	size_t i;
+
+	for (i = 0; i < sizeof(v); i++)
+	{
+		result <<= 8;
+		result |= (v & 0xff);
+		v >>= 8;
+	}
+	return result;
+}
 
 static ssize_t struct_pack_pad(void *buffer, struct_context *context, va_list *vl)
 {
@@ -225,7 +392,13 @@ static ssize_t struct_pack_short(void *buffer, struct_context *context, va_list 
 	p = buffer + padding;
 
 	for (i = 0; i < context->repeat; i++)
-		*p++ = va_arg(*vl, int);
+	{
+		int16_t v = va_arg(*vl, int);
+		if (context->byte_order != BYTE_ORDER)
+			v = swab_16(v);
+		stor_16(p, v);
+		p++;
+	}
 
 	return (void *) p - buffer;
 }
@@ -238,7 +411,13 @@ static ssize_t struct_unpack_short(const void *buffer, struct_context *context, 
 	p = buffer + struct_field_padding(context, int16_t);
 
 	for (i = 0; i < context->repeat; i++)
-		*va_arg(*vl, int16_t*) = *p++;
+	{
+		int16_t v = load_16(p);
+		if (context->byte_order != BYTE_ORDER)
+			v = swab_16(v);
+		*va_arg(*vl, int16_t*) = v;
+		p++;
+	}
 
 	return (void *) p - buffer;
 }
@@ -250,68 +429,92 @@ static ssize_t struct_calcsize_short(struct_context *context)
 
 static ssize_t struct_pack_int(void *buffer, struct_context *context, va_list *vl)
 {
-	int32_t *p;
+	uint32_t *p;
 	size_t i;
-	size_t padding = struct_field_padding(context, int32_t);
+	size_t padding = struct_field_padding(context, uint32_t);
 
 	memset(buffer, 0, padding);
 	p = buffer + padding;
 
 	for (i = 0; i < context->repeat; i++)
-		*p++ = va_arg(*vl, int32_t);
+	{
+		uint32_t v = va_arg(*vl, uint32_t);
+		if (context->byte_order != BYTE_ORDER)
+			v = swab_32(v);
+		stor_32(p, v);
+		p++;
+	}
 
 	return (void *) p - buffer;
 }
 
 static ssize_t struct_unpack_int(const void *buffer, struct_context *context, va_list *vl)
 {
-	const int32_t *p;
+	const uint32_t *p;
 	size_t i;
 
-	p = buffer + struct_field_padding(context, int32_t);
+	p = buffer + struct_field_padding(context, uint32_t);
 
 	for (i = 0; i < context->repeat; i++)
-		*va_arg(*vl, int32_t*) = *p++;
+	{
+		uint32_t v = load_32(p);
+		if (context->byte_order != BYTE_ORDER)
+			v = swab_32(v);
+		*va_arg(*vl, uint32_t*) = v;
+		p++;
+	}
 
 	return (void *) p - buffer;
 }
 
 static ssize_t struct_calcsize_int(struct_context *context)
 {
-	return struct_field_padding(context, int32_t) + context->repeat * sizeof(int32_t);
+	return struct_field_padding(context, uint32_t) + context->repeat * sizeof(uint32_t);
 }
 
 static ssize_t struct_pack_quad(void *buffer, struct_context *context, va_list *vl)
 {
-	int64_t *p;
+	uint64_t *p;
 	size_t i;
-	size_t padding = struct_field_padding(context, int64_t);
+	size_t padding = struct_field_padding(context, uint64_t);
 
 	memset(buffer, 0, padding);
 	p = buffer + padding;
 
 	for (i = 0; i < context->repeat; i++)
-		*p++ = va_arg(*vl, int64_t);
+	{
+		uint64_t v = va_arg(*vl, uint64_t);
+		if (context->byte_order != BYTE_ORDER)
+			v = swab_64(v);
+		stor_64(p, v);
+		p++;
+	}
 
 	return (void *) p - buffer;
 }
 
 static ssize_t struct_unpack_quad(const void *buffer, struct_context *context, va_list *vl)
 {
-	const int64_t *p;
+	const uint64_t *p;
 	size_t i;
 
-	p = buffer + struct_field_padding(context, int64_t);
+	p = buffer + struct_field_padding(context, uint64_t);
 
 	for (i = 0; i < context->repeat; i++)
-		*va_arg(*vl, int64_t*) = *p++;
+	{
+		uint64_t v = load_64(p);
+		if (context->byte_order != BYTE_ORDER)
+			v = swab_64(v);
+		*va_arg(*vl, uint64_t*) = v;
+		p++;
+	}
 
 	return (void *) p - buffer;
 }
 
 static ssize_t struct_calcsize_quad(struct_context *context)
 {
-	return struct_field_padding(context, int64_t) + context->repeat * sizeof(int64_t);
+	return struct_field_padding(context, uint64_t) + context->repeat * sizeof(uint64_t);
 }
 
 static ssize_t struct_pack_float(void *buffer, struct_context *context, va_list *vl)
@@ -324,7 +527,14 @@ static ssize_t struct_pack_float(void *buffer, struct_context *context, va_list 
 	p = buffer + padding;
 
 	for (i = 0; i < context->repeat; i++)
-		*p++ = va_arg(*vl, double);
+	{
+		float32 v;
+		v.f = va_arg(*vl, double);
+		if (context->byte_order != BYTE_ORDER)
+			v.i = swab_32(v.i);
+		stor_32(p, v.i);
+		p++;
+	}
 
 	return (void *) p - buffer;
 }
@@ -337,7 +547,14 @@ static ssize_t struct_unpack_float(const void *buffer, struct_context *context, 
 	p = buffer + struct_field_padding(context, float);
 
 	for (i = 0; i < context->repeat; i++)
-		*va_arg(*vl, float*) = *p++;
+	{
+		float32 v;
+		v.i = load_32(p);
+		if (context->byte_order != BYTE_ORDER)
+			v.i = swab_32(v.i);
+		*va_arg(*vl, float*) = v.f;
+		p++;
+	}
 
 	return (void *) p - buffer;
 }
@@ -357,7 +574,14 @@ static ssize_t struct_pack_double(void *buffer, struct_context *context, va_list
 	p = buffer + padding;
 
 	for (i = 0; i < context->repeat; i++)
-		*p++ = va_arg(*vl, double);
+	{
+		double64 v;
+		v.d = va_arg(*vl, double);
+		if (context->byte_order != BYTE_ORDER)
+			v.i = swab_64(v.i);
+		stor_64(p, v.i);
+		p++;
+	}
 
 	return (void *) p - buffer;
 }
@@ -371,7 +595,14 @@ static ssize_t struct_unpack_double(const void *buffer, struct_context *context,
 	p = buffer + padding;
 
 	for (i = 0; i < context->repeat; i++)
-		*va_arg(*vl, double*) = *p++;
+	{
+		double64 v;
+		v.i = load_64(p);
+		if (context->byte_order != BYTE_ORDER)
+			v.i = swab_64(v.i);
+		*va_arg(*vl, double*) = v.d;
+		p++;
+	}
 
 	return (void *) p - buffer;
 }
