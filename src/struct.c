@@ -1,6 +1,6 @@
 /**
  * struct.c
- * Structure packing like python 'struct' module
+ * Structure packing like python 'struct' module.
  *
  * The MIT License (MIT)
  *

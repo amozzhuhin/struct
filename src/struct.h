@@ -1,6 +1,7 @@
 /**
  * struct.h
- * Structure packing like python 'struct' module
+ * Structure packing like python 'struct' module.
+ * Python struct format definitions: http://docs.python.org/2/library/struct.html#format-strings
  *
  * The MIT License (MIT)
  *
@@ -33,10 +34,31 @@
 // Public Services
 //
 
+/**
+ * Pack binary data to buffer
+ * @param buffer Destination buffer
+ * @param size Size of destination buffer
+ * @param format Format pattern string
+ * @param ... Fields to pack
+ * @return Size of packed data or negative when failed
+ */
 ssize_t struct_pack(void *buffer, size_t size, const char *format, ...);
 
+/**
+ * Unpack binary data from buffer
+ * @param buffer Source buffer
+ * @param size Size of destination buffer
+ * @param format Format pattern string
+ * @param ... Fields to unpack
+ * @return Size of unpacked data or negative when failed
+ */
 ssize_t struct_unpack(const void *buffer, size_t size, const char *format, ...);
 
+/**
+ * Calculate size of buffer for givven format pattern
+ * @param format Format pattern string
+ * @return Calculated data size or negative when failed
+ */
 ssize_t struct_calcsize(const char *format);
 
 #endif /* STRUCT_H_ */
