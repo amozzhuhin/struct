@@ -620,7 +620,7 @@ static ssize_t struct_pack_str(void *buffer, struct_context *context, va_list *v
 
 	for (i = 0; i < context->repeat; i++)
 	{
-		if (str != NULL && *str != '0')
+		if (str != NULL && *str != '\0')
 			*p++ = *str++;
 		else
 			*p++ = 0;

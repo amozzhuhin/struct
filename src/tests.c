@@ -452,6 +452,20 @@ static void test_struct_unpack_endian(void)
 		printf("FAIL\n");
 }
 
+static void test_struct_pack_str_0(void)
+{
+	uint8_t buf[100];
+	ssize_t size;
+	uint8_t result[] = { 0x6b, 0x65, 0x79, 0x5f, 0x30, 0x30, 0x31 };
+
+	size = struct_pack(buf, sizeof(buf), "7s", "key_001");
+	printf("Pack string with zero: ");
+	if (size == sizeof(result) && memcmp(buf, result, sizeof(result)) == 0)
+		printf("PASS\n");
+	else
+		printf("FAIL\n");
+}
+
 int main(int argc, char *argv[])
 {
 	test_struct_pack_basic_min();
@@ -476,6 +490,8 @@ int main(int argc, char *argv[])
 
 	test_struct_pack_endian();
 	test_struct_unpack_endian();
+
+	test_struct_pack_str_0();
 
 	return 0;
 }
